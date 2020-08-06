@@ -9,7 +9,7 @@
 	"inRepository": true,
 	"translatorType": 4,
 	"browserSupport": "gcsibv",
-	"lastUpdated": "2020-08-06 13:48:47"
+	"lastUpdated": "2020-08-06 11:45:31"
 }
 
 /*
@@ -36,8 +36,7 @@
 */
 
 function detectWeb(doc, url) {
-	return "patent";
-	if (url.indexOf("/PU") != -1) {
+	if (url.indexOf("/p0200") != -1) {
 		return "patent";
 	}
 	return false;
@@ -46,8 +45,73 @@ function detectWeb(doc, url) {
 
 function doWeb(doc, url) {
 	if (detectWeb(doc, url) == "patent") {
-		var newItem = new Zotero.Item("patent");
-		newItem.title = "Test Pattent"
-		newItem.complete();
+		var item = new Zotero.Item("patent");
+		// set valid url
+		setValidUrl(doc, item);
+		/*
+		dataList is a list of innerHTML.
+		ex)
+		["(19)【発行国】日本国特許庁(JP)",
+		 "(12)【公報種別】公開特許公報(A)",
+		 ...,
+		 "<span class="monospaced-font">&nbsp;&nbsp;&nbsp;Ａ４…sp;&nbsp;23/08&nbsp;&nbsp;&nbsp;&nbsp;　　　Ｚ</span>"]
+		*/
+		dataList = doc.querySelector('rti').innerHTML.split('<br>');
+		// set valid meaningful title
+		title = getInfo(dataList, '【発明の名称】') || getInfo(dataList, '[Title of the invention]') ||doc.querySelector('h2').innerText;
+		item.title = ZU.cleanTags(title);
+		
+		item.creators.push(ZU.cleanAuthor("LastName, FirstName", 'inventor', true));
+		item.complete();
 	}
 }
+
+
+/*
+	emulate click the URL button,
+	get the valid URL from the poped up,
+	emulate click the close button,
+	and set the url into the given zotero item.
+*/
+function setValidUrl(doc, item) {
+	doc.querySelector('a#docuTitleArea_btnUrl').click()
+	url = doc.querySelector('a#lnkUrl').innerText
+	doc.querySelector('a#btnClose').click()
+	item.url = url;
+	return;
+}
+
+
+/*
+	key = '[name]'
+	dataList = ['[name]Bob', '[name]John', '[title]awsom invent']
+	getInfo(dataList, key) // return ['Bob']
+*/
+function getInfo(dataList, key) {
+	for (let i=0; i<dataList.length; i++) {
+		data = dataList[i];
+		iKey = data.indexOf(key);
+		if (iKey != -1) {
+			return data.slice(iKey+key.length);
+		}
+	}
+	return undefined;
+}
+
+/*
+	key = '[name]'
+	dataList = ['[name]Bob', '[name]John', '[title]awsom invent']
+	getInfoAll(dataList, key) // return ['Bob', 'John']
+*/
+function getInfoAll(dataList, key) {
+	arr = [];
+	for (let i=0; i<dataList.length; i++) {
+		data = dataList[i];
+		iKey = data.indexOf(key);
+		if (iKey != -1) {
+			arr.push(data.slice(iKey+key.length));
+		}
+	}
+	return arr;
+}
+
