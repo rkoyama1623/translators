@@ -9,7 +9,7 @@
 	"inRepository": true,
 	"translatorType": 4,
 	"browserSupport": "gcsibv",
-	"lastUpdated": "2020-08-06 17:12:23"
+	"lastUpdated": "2020-08-07 05:55:43"
 }
 
 /*
@@ -48,8 +48,9 @@ function doWeb(doc, url) {
 		var item = new Zotero.Item("patent");
 		// set valid url
 		doc.querySelector('a#docuTitleArea_btnUrl').click()
-		item.url = doc.querySelector('a#lnkUrl').innerText
-		doc.querySelector('a#btnClose').click()
+		var url = doc.querySelector('a#lnkUrl').innerText;
+		if (url !== null) item.url = url;
+		doc.querySelector('a#btnClose').click();
 
 		/*
 		dataList is a list of innerHTML.
@@ -59,21 +60,20 @@ function doWeb(doc, url) {
 		 ...,
 		 "<span class="monospaced-font">&nbsp;&nbsp;&nbsp;Ａ４…sp;&nbsp;23/08&nbsp;&nbsp;&nbsp;&nbsp;　　　Ｚ</span>"]
 		*/
-		dataList = doc.querySelector('rti').innerHTML.split('<br>');
+		var dataList = doc.querySelector('rti').innerHTML.split('<br>');
 
 		// set title
-		title = getInfo(dataList, '【発明の名称】') || getInfo(dataList, '[Title of the invention]') ||doc.querySelector('h2').innerText;
+		var title = getInfo(dataList, '【発明の名称】') || getInfo(dataList, '[Title of the invention]') ||doc.querySelector('h2').innerText ||"";
 		item.title = ZU.cleanTags(title);
 
 		// set inventors
-		inventors = getInfoOffsetAll(dataList, '【発明者】', 1, '【氏名】') || getInfoOffsetAll(dataList, '[Inventor]', 1, '[Name]') || [];
+		var inventors = getInfoOffsetAll(dataList, '【発明者】', 1, '【氏名】') || getInfoOffsetAll(dataList, '[Inventor]', 1, '[Name]') || [];
 		for (let i=0; i<inventors.length; i++) {
-			inventor = ZU.cleanTags(inventors[i]); // remove html tag
+			var inventor = ZU.cleanTags(inventors[i]); // remove html tag
 			inventor = inventor.replace('，',',');  // Zenkaku -> Hankaku
 			inventor = inventor.replace(/\s|&nbsp;/g,' '); // replace &nbsp; to space
 			inventor = inventor.replace(/ +/g,' '); // remove multiple space
-
-			tmp_inventor = inventor.replace(' ',','); // replace space to comma
+			var tmp_inventor = inventor.replace(' ',','); // replace space to comma
 			tmp_inventor = tmp_inventor.replace(/,+/g,','); // remove multiple comma
 
 			if (tmp_inventor.split(',').length == 2) { // 'FirstName, SecondName'
@@ -82,58 +82,58 @@ function doWeb(doc, url) {
 				item.creators.push({'firstName':'', 'lastName':inventor, 'creatorType': 'inventor'});
 			}
 		}
-		
+
 		// set issue Date
-		issueDate = getInfo(dataList, '【発行日】') || getInfo(dataList, '[Publication date]');
-		item.issueDate = ZU.cleanTags(issueDate);
-		
+		var issueDate = getInfo(dataList, '【発行日】') || getInfo(dataList, '[Publication date]') ||"";
+		if (issueDate !== undefined) item.issueDate = ZU.cleanTags(issueDate);
+
 		// set filingDate
-		filingDate = getInfo(dataList, '【出願日】') || getInfo(dataList, '[Filing date]');
+		var filingDate = getInfo(dataList, '【出願日】') || getInfo(dataList, '[Filing date]') || "";
 		item.filingDate = ZU.cleanTags(filingDate);
-		
+
 		// set patent number
-		patentNumber = getInfo(dataList, '【特許番号】') || getInfo(dataList, '[Patent number]');
+		var patentNumber = getInfo(dataList, '【特許番号】') || getInfo(dataList, '[Patent number]') || "";
 		item.patentNumber = ZU.cleanTags(patentNumber);
-		
+
 		// set assinee
-		assinee = getInfoOffsetAll(dataList, '【特許権者】',2,'【氏名又は名称】') || getInfoOffsetAll(dataList, '[Patentee]', 2, '[Name]');
+		var assinee = getInfoOffsetAll(dataList, '【特許権者】',2,'【氏名又は名称】') || getInfoOffsetAll(dataList, '[Patentee]', 2, '[Name]') || [""];
 		item.assinee = ZU.cleanTags(assinee[0]);
-		
+
 		// set application number
-		applicationNumber = getInfo(dataList, '【出願番号】') || getInfo(dataList, '[Application number]');
+		var applicationNumber = getInfo(dataList, '【出願番号】') || getInfo(dataList, '[Application number]') || "";
 		item.applicationNumber = ZU.cleanTags(applicationNumber);
 
 		// set country
-		country = getInfo(dataList, '【発行国】') || getInfo(dataList, '[Publication country]');
+		var country = getInfo(dataList, '【発行国】') || getInfo(dataList, '[Publication country]') || "";
 		item.country = ZU.cleanTags(country);
-		
+
 		// set abstract
-		boxes = doc.querySelectorAll('a.l-toggle__header.js-toggle-active.js-toggle-href-active')
+		var boxes = doc.querySelectorAll('a.l-toggle__header.js-toggle-active.js-toggle-href-active')
 		for (let i=0; i<boxes.length; i++) {
-			box = boxes[i];
-			boxTitle = box.querySelector('h3').innerText;
+			var box = boxes[i];
+			var boxTitle = box.querySelector('h3').innerText;
 			// find overview box
 			if (boxTitle.indexOf('要約') != -1 || boxTitle.indexOf('Overview') != -1) {
-				txfElement = box.parentElement.querySelector('txf');
+				var txfElement = box.parentElement.querySelector('txf');
 				// if overview box is closed, emulate click and open the box
 				if (txfElement === null) {
 					box.click();
 					txfElement = box.parentElement.querySelector('txf');
 					box.click();
 				}
-				item.abstract = txfElement.innerText
+				if (txfElement !== null) item.abstract = txfElement.innerText;
 				break;
 			}
 		}
-		
+
 		// set classificaton
 		var classifications = [];
 		var inFiDescription = false;
 		for (let i=0; i<dataList.length; i++) {
-			data = dataList[i];
+			var data = dataList[i];
 			data = zenkaku2hankaku(data);
 			if (data.indexOf('【FI】') != -1 || data.indexOf('[FI]') != -1) {
-				inFiDescription = true;	
+				inFiDescription = true;
 				continue;
 			}
 			if (inFiDescription && (data.indexOf('【') != -1 || data.indexOf('[') != -1 )) {
@@ -142,27 +142,29 @@ function doWeb(doc, url) {
 			}
 			if (inFiDescription && (data.indexOf('【') == -1 || data.indexOf('[') == -1 )) {
 				data = data.replace(/\s|&nbsp;/g,' '); // replace &nbsp; to space
-				data = data.replace(/ +/g,' '); // remove multiple space				
+				data = data.replace(/ +/g,' '); // remove multiple space
 				classifications.push(data);
 			}
 		}
-
 		if (classifications.length>0) {
 			item.notes.push({note: "<h2>Classifications</h2>\n" + classifications.join("<br/>\n")});
 		}
+
+		// complete item
 		item.complete();
 	}
 }
 
 /*
+    Example:
 	key = '[name]'
 	dataList = ['[name]Bob', '[name]John', '[title]awsom invent']
 	getInfo(dataList, key) // return ['Bob']
 */
 function getInfo(dataList, key) {
 	for (let i=0; i<dataList.length; i++) {
-		data = dataList[i];
-		iKey = data.indexOf(key);
+		var data = dataList[i];
+		var iKey = data.indexOf(key);
 		if (iKey != -1) {
 			return data.slice(iKey+key.length);
 		}
@@ -171,15 +173,16 @@ function getInfo(dataList, key) {
 }
 
 /*
+    Example:
 	key = '[name]'
 	dataList = ['[name]Bob', '[name]John', '[title]awsom invent']
 	getInfoAll(dataList, key) // return ['Bob', 'John']
 */
 function getInfoAll(dataList, key) {
-	arr = [];
+	var arr = [];
 	for (let i=0; i<dataList.length; i++) {
-		data = dataList[i];
-		iKey = data.indexOf(key);
+		var data = dataList[i];
+		var iKey = data.indexOf(key);
 		if (iKey != -1) {
 			arr.push(data.slice(iKey+key.length));
 		}
@@ -191,19 +194,20 @@ function getInfoAll(dataList, key) {
 }
 
 /*
+    Example:
 	key = '[inventor]'
 	dataList = ['[inventor]', [name]Bob', '[inventor]', '[name]Ema']
 	getInfoOffsetAll(dataList, key, 1) // return ['[name]Bob', '[name]Ema']
 	getInfoOffsetAll(dataList, key, 1, '[name]') // return ['Bob', 'Ema']
 */
 function getInfoOffsetAll(dataList, key, offset, key2='') {
-	arr = [];
+	var arr = [];
 	for (let i=0; i<dataList.length; i++) {
-		data = dataList[i];
-		iKey = data.indexOf(key);
+		var data = dataList[i];
+		var iKey = data.indexOf(key);
 		if (iKey != -1) {
-			data2 = dataList[i+offset];
-			iKey2 = data2.indexOf(key2);
+			var data2 = dataList[i+offset];
+			var iKey2 = data2.indexOf(key2);
 			arr.push(data2.slice(iKey2+key2.length));
 		}
 	}
@@ -213,12 +217,8 @@ function getInfoOffsetAll(dataList, key, offset, key2='') {
 	return undefined;
 }
 
-function filterText(str_in) {
-	return str_in.replace( /\s|&nbsp;/g , ' ')
-}
-
 function zenkaku2hankaku(str) {
-    return str.replace(/[Ａ-Ｚａ-ｚ０-９]/g, function(s) {
-        return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
-    });
+	return str.replace(/[Ａ-Ｚａ-ｚ０-９]/g, function(s) {
+		return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+	});
 }
